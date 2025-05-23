@@ -10,8 +10,8 @@ export class Encrypter {
     constructor(
         private readonly env: ConfigService
     ){
-        this.saltRounds = Number(this.env.get("SALT"))
-        this.pepper = this.env.get<string>("PEPPER")
+        this.saltRounds = Number(env.get("SALT"))
+        this.pepper = env.get<string>("PEPPER")
     }
 
     async hashPassword(password: string): Promise<string> {

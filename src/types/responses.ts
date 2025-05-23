@@ -3,3 +3,7 @@ export interface responsePayload<T> {
     data?: T
     error: boolean
 }
+
+export interface loginSuccess {
+    token: string
+}

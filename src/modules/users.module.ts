@@ -10,7 +10,7 @@ import { UserService } from "src/services/user.service";
 @Module({
     imports: [
         TypeOrmModule.forFeature([User, Liquidacion]),
-        MulterModule
+        MulterModule,
     ],
     controllers: [UserController],
     providers: [UserService, Encrypter],

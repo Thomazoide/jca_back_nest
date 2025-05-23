@@ -6,9 +6,18 @@ import { UserModule } from './modules/users.module';
 import { AccountRequestsModule } from './modules/solicitud.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/db.config';
+import { JwtModule } from '@nestjs/jwt';
+import { jwtConfig } from './config/jwt.config';
+import { JwtStrategy } from './config/auth/jwtStrategy.config';
 
 @Module({
   imports: [
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: jwtConfig,
+      global: true
+    }),
     ConfigModule.forRoot({
       isGlobal: true
     }),
@@ -21,6 +30,9 @@ import { typeOrmConfig } from './config/db.config';
     })
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    JwtStrategy
+  ],
 })
 export class AppModule {}

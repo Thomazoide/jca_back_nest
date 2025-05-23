@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Encrypter } from "src/middleware/encrypter.middleware";
 import { Liquidacion } from "src/models/liquidaciones.model";
@@ -12,7 +13,8 @@ export class UserService {
         private readonly userRepository: Repository<User>,
         @InjectRepository(Liquidacion)
         private readonly liqRepository: Repository<Liquidacion>,
-        private readonly encrypter: Encrypter
+        private readonly encrypter: Encrypter,
+        private readonly tokenService: JwtService
     ){}
 
     async createUser(data: Partial<User>): Promise<User> {
@@ -34,14 +36,14 @@ export class UserService {
 
     async updateUser(userID: number, data: Partial<User>): Promise<User> {
         const user = await this.userRepository.findOneBy({id: userID})
-        if(!user) throw new Error("usuario no encontrado")
+        if(!user) throw new Error("usuario no encontrado");
         Object.assign(user, data)
         return this.userRepository.save(user)
     }
 
     async addOrReplaceContract(userId: number, contractPath: string): Promise<User> {
         const user = await this.userRepository.findOneBy({id: userId})
-        if (!user) throw new Error("usuario no encontrado")
+        if (!user) throw new Error("usuario no encontrado");
         user.contrato = contractPath
         return this.userRepository.save(user)
     }
@@ -50,7 +52,7 @@ export class UserService {
         const user = await this.userRepository.findOne({
             where: {id}
         })
-        if(!user) throw new Error("usuario no encontrado")
+        if(!user) throw new Error("usuario no encontrado");
         const liq = await this.liqRepository.findOneBy({path})
         if(!liq){
             const liquidacion = this.liqRepository.create({ path, user })
@@ -58,5 +60,14 @@ export class UserService {
         }
         liq.path = path
         return this.liqRepository.save(liq)
+    }
+
+    async login(rut: string, password: string): Promise<string> {
+        const user = await this.userRepository.findOneBy({rut})
+        if (!user) throw new Error("usuario no encontrado");
+        const passwordMatch = await this.encrypter.comparePassword(password, user.password)
+        if (!passwordMatch) throw new Error("Contraseña incorrecta");
+        const payload = user.toSignData()
+        return this.tokenService.sign(payload)
     }
 }

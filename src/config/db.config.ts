@@ -8,6 +8,7 @@ export const typeOrmConfig = (env: ConfigService): TypeOrmModuleOptions => ({
     type: "mysql",
     host: env.get<string>("DBHOST"),
     port: Number(env.get<string>("DBPORT")),
+    database: env.get<string>("DBNAME"),
     username: env.get<string>("DBUSER"),
     password: env.get<string>("DBPASS"),
     entities: [Solicitud, User, Liquidacion],

@@ -21,7 +21,7 @@ export class UserController {
         private readonly service: UserService
     ) {}
 
-    @UseGuards(JwtAuthGuard)
+    
     @ApiBearerAuth()
     @ApiOperation({
         summary: "Crea un nuevo usuario"
@@ -414,6 +414,37 @@ export class UserController {
             res.download(filePath, fileName)
             return {
                 message: "Liquidación encontrada",
+                error: false
+            }
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Informa si el usuario tiene liquidaciones"
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        description: "Indica si el usuario tiene liquidaciones",
+        type: ResponsePayloadDTO<boolean>
+    })
+    @Get(":id/has-liquidaciones")
+    async hasLiquidaciones(
+        @Param("id", ParseIntPipe)
+        id: number
+    ): Promise<responsePayload<boolean>> {
+        try{
+            const user = await this.service.findById(id)
+            const hasLiquidaciones = !!(user && user.liquidaciones && user.liquidaciones.length > 0)
+            return {
+                message: "Consulta exitosa",
+                data: hasLiquidaciones,
                 error: false
             }
         }catch(err){

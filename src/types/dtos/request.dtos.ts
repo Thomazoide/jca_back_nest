@@ -31,3 +31,10 @@ export class SolicitudDTO {
     @ApiProperty()
     rut: string
 }
+
+export class ChangePasswordDTO {
+    @ApiProperty()
+    oldPassword: string
+    @ApiProperty()
+    newPassword: string
+}

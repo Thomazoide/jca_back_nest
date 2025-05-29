@@ -8,11 +8,11 @@ import { diskStorage } from "multer";
 import { Liquidacion } from "src/models/liquidaciones.model";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-import { loginPayload } from "src/types/requests";
+import { changePasswordPayload, loginPayload } from "src/types/requests";
 import { JwtAuthGuard } from "src/config/auth/jwtAuthGuard.config";
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiBody, ApiResponse, ApiConsumes } from "@nestjs/swagger";
 import { LoginSuccessDTO, ResponsePayloadDTO } from "src/types/dtos/response.dtos";
-import { LoginPayloadDTO, UserDTO } from "src/types/dtos/request.dtos";
+import { ChangePasswordDTO, LoginPayloadDTO, UserDTO } from "src/types/dtos/request.dtos";
 
 @ApiTags("usuarios")
 @Controller("usuarios")
@@ -447,6 +447,42 @@ export class UserController {
                 data: hasLiquidaciones,
                 error: false
             }
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Cambia la contraseña del usuario"
+    })
+    @ApiBody({
+        description: "Requiere: clave antigua y nueva clave",
+        required: true,
+        type: ChangePasswordDTO
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Informa si la operacion se realizo con exito",
+        type: ResponsePayloadDTO
+    })
+    @Put(":id/change-password")
+    async ChangePassword(
+        @Param("id", ParseIntPipe)
+        id: number,
+        @Body()
+        data: changePasswordPayload
+    ): Promise<responsePayload<boolean>>{
+        try{
+            const response: responsePayload<boolean> = {
+                message: "Clave cambiada",
+                data: await this.service.changePassword(id, data.oldPassword, data.newPassword),
+                error: false
+            }
+            return response
         }catch(err){
             return {
                 message: (err as Error).message,

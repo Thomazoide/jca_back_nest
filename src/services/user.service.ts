@@ -37,6 +37,7 @@ export class UserService {
     async updateUser(userID: number, data: Partial<User>): Promise<User> {
         const user = await this.userRepository.findOneBy({id: userID})
         if(!user) throw new Error("usuario no encontrado");
+        if(data.password) throw new Error("Esta api es solo para valores que no necesitan encriptacion")
         Object.assign(user, data)
         return this.userRepository.save(user)
     }
@@ -69,5 +70,15 @@ export class UserService {
         if (!passwordMatch) throw new Error("Contraseña incorrecta");
         const payload = user.toSignData()
         return this.tokenService.sign(payload)
+    }
+
+    async changePassword(id: number, oldPassword: string, newPassword: string): Promise<boolean> {
+        const user = await this.userRepository.findOneBy({id})
+        if (!user) throw new Error("Usuario no encontrado");
+        const passwordMatch = await this.encrypter.comparePassword(oldPassword, user.password)
+        if(!passwordMatch) throw new Error("Contraseñas no coinciden");
+        user.password = await this.encrypter.hashPassword(newPassword)
+        this.userRepository.save(user)
+        return passwordMatch
     }
 }

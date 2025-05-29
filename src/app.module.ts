@@ -9,6 +9,7 @@ import { typeOrmConfig } from './config/db.config';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConfig } from './config/jwt.config';
 import { JwtStrategy } from './config/auth/jwtStrategy.config';
+import { LiqRequestsModule } from './modules/liqRequests.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { JwtStrategy } from './config/auth/jwtStrategy.config';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: typeOrmConfig
-    })
+    }),
+    LiqRequestsModule
   ],
   controllers: [AppController],
   providers: [

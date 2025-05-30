@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Res, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
-import { FileInterceptor } from "@nestjs/platform-express";
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, Res, UploadedFile, UploadedFiles, UseGuards, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { User } from "src/models/users.model";
 import { UserService } from "src/services/user.service";
 import { loginSuccess, responsePayload } from "src/types/responses";
@@ -483,6 +483,71 @@ export class UserController {
                 error: false
             }
             return response
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Carga multiple de liquidaciones en formato PDF"
+    })
+    @ApiBearerAuth()
+    @ApiConsumes("multipart/form-data")
+    @ApiBody({
+        schema: {
+            type: "object",
+            properties: {
+                files: {
+                    type: "array",
+                    items: {
+                        type: "string",
+                        format: "binary",
+                        description: "Archivo PDF liquidacion"
+                    }
+                }
+            },
+            required: ["files"]
+        }
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Liquidaciones agregadas",
+        type: ResponsePayloadDTO
+    })
+    @Put(":id/liquidaciones/multiple")
+    @UseInterceptors(FilesInterceptor("files", 12, {
+        storage: diskStorage({
+            destination: "./uploads/liquidaciones",
+            filename: (_, file, cb) => cb(null, file.originalname)
+        }),
+        fileFilter: (_, file, cb) => {
+            if(file.mimetype === "application/pdf") cb(null, true);
+            else cb(new Error("Los archivos deben estar en formato PDF"), false)
+        }
+    }))
+    async UploadMultipleLiquidations(
+        @Param("id", ParseIntPipe)
+        id: number,
+        @UploadedFiles()
+        files: Express.Multer.File[]
+    ): Promise<responsePayload<Liquidacion[]>> {
+        try{
+            if(!files || files.length < 1 || files.length > 12) throw new Error("Máximo de 12 archivos permitidos por carga");
+            const liquidaciones: Liquidacion[] = []
+            for(const file of files) {
+                const path = `/uploads/liquidaciones/${file.originalname}`
+                const liq = await this.service.addLiquidation(id, path)
+                liquidaciones.push(liq)
+            }
+            return {
+                message: "Liquidaciones agregadas",
+                data: liquidaciones,
+                error: false
+            }
         }catch(err){
             return {
                 message: (err as Error).message,

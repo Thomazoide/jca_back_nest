@@ -348,12 +348,7 @@ export class UserController {
     ): Promise<responsePayload<null>> {
         try{
             const user = await this.service.findById(id)
-            if (!user || !user.contrato) {
-                return {
-                    message: "Contrato no existente",
-                    error: true,
-                }
-            }
+            if (!user || !user.contrato) throw new Error("Contrato no existente");
             const filePath = join(process.cwd(), user.contrato.replace(/^\//, ""))
             if(!existsSync(filePath)) {
                 return {
@@ -546,6 +541,80 @@ export class UserController {
             return {
                 message: "Liquidaciones agregadas",
                 data: liquidaciones,
+                error: false
+            }
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Entrega todas las liquidaciones de un usuario"
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        description: "Liquidaciones encontradas",
+        type: ResponsePayloadDTO<Liquidacion[]>
+    })
+    @Get(":id/liquidaciones")
+    async GetUserLiquidations(
+        @Param("id", ParseIntPipe)
+        id: number
+    ): Promise<responsePayload<Liquidacion[]>> {
+        try{
+            const user = await this.service.findById(id)
+            if(!user) throw new Error("Usuario no existente");
+            return {
+                message: "Liquidaciones",
+                data: user.liquidaciones,
+                error: false
+            }
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Descarga el contrato en formato pdf de un usuario"
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        description: "Contrato PDF descargado",
+        type: ResponsePayloadDTO
+    })
+    @Get(":id/liquidacion/:lid")
+    async downloadLiquidation(
+        @Param("id", ParseIntPipe)
+        id: number,
+        @Param("lid", ParseIntPipe)
+        lid: number,
+        @Res()
+        res: Response
+    ): Promise<responsePayload<null>> {
+        try{
+            const user = await this.service.findById(id)
+            if (!user || !user.liquidaciones) throw new Error("Usuario sin liquidaciones");
+            const liquidacion = await this.service.getLiqByID(lid)
+            const filePath = join(process.cwd(), liquidacion.path.replace(/^\//, ""))
+            if(!existsSync(filePath)) {
+                return {
+                    message: "Liquidación no existente",
+                    error: true
+                }
+            }
+            res.download(filePath, liquidacion.path.split("/")[-1])
+            return {
+                message: "Liquidacion encontrada",
                 error: false
             }
         }catch(err){

@@ -81,4 +81,8 @@ export class UserService {
         this.userRepository.save(user)
         return passwordMatch
     }
+
+    async getLiqByID(id: number): Promise<Liquidacion> {
+        return this.liqRepository.findOne({where:{id}})
+    }
 }

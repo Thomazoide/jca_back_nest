@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { changePasswordPayload, loginPayload } from "src/types/requests";
 import { JwtAuthGuard } from "src/config/auth/jwtAuthGuard.config";
-import { ApiBearerAuth, ApiOperation, ApiTags, ApiBody, ApiResponse, ApiConsumes } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOperation, ApiTags, ApiBody, ApiResponse, ApiConsumes, ApiParam } from "@nestjs/swagger";
 import { LoginSuccessDTO, ResponsePayloadDTO } from "src/types/dtos/response.dtos";
 import { ChangePasswordDTO, LoginPayloadDTO, UserDTO } from "src/types/dtos/request.dtos";
 
@@ -371,56 +371,6 @@ export class UserController {
 
     @UseGuards(JwtAuthGuard)
     @ApiOperation({
-        summary: "Descarga una liquidación de un usuario"
-    })
-    @ApiBearerAuth()
-    @ApiResponse({
-        status: 200,
-        description: "Liquidación PDF descargada",
-        type: ResponsePayloadDTO
-    })
-    @Get(":id/liquidacion/:mes/:year")
-    async downloadLiquidacion(
-        @Param("id")
-        id: number,
-        @Param("mes")
-        mes: string,
-        @Param("year")
-        year: string,
-        @Res()
-        res: Response
-    ): Promise<responsePayload<null>> {
-        try{
-            const user = await this.service.findById(id)
-            if(!user || !user.contrato) {
-                return {
-                    message: "Usuario o contrato no existente",
-                    error: true
-                }
-            }
-            const fileName = `${user.rut}_${user.id}_${mes}_${year}.pdf`
-            const filePath = join(process.cwd(), "uploads", "liquidaciones", fileName)
-            if(!existsSync(filePath)) {
-                return {
-                    message: "Liquidacion no existente",
-                    error: true
-                }
-            }
-            res.download(filePath, fileName)
-            return {
-                message: "Liquidación encontrada",
-                error: false
-            }
-        }catch(err){
-            return {
-                message: (err as Error).message,
-                error: true
-            }
-        }
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @ApiOperation({
         summary: "Informa si el usuario tiene liquidaciones"
     })
     @ApiBearerAuth()
@@ -569,9 +519,12 @@ export class UserController {
         try{
             const user = await this.service.findById(id)
             if(!user) throw new Error("Usuario no existente");
+            if(!user.liquidaciones) throw new Error("Usuario sin liquidaciones");
+            const liquidaciones = await this.service.getLiquidations(user.id)
+            if(!liquidaciones) throw new Error("Error al encontrar liquidaciones");
             return {
                 message: "Liquidaciones",
-                data: user.liquidaciones,
+                data: liquidaciones,
                 error: false
             }
         }catch(err){
@@ -624,4 +577,104 @@ export class UserController {
             }
         }
     }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Entrega una liquidación en base64"
+    })
+    @ApiParam({
+        name: "id",
+        type: Number,
+        description: "id del usuario"
+    })
+    @ApiParam({
+        name: "lid",
+        type: Number,
+        description: "id de la liquidación"
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        description: "Liquidación en Base64",
+        type: ResponsePayloadDTO<{base64: string}>
+    })
+    @Get(":id/liquidacion/:lid/base64")
+    async getLiquidacionBase64(
+        @Param("id", ParseIntPipe)
+        id: number,
+        @Param("lid", ParseIntPipe)
+        lid: number
+    ): Promise<responsePayload<{
+        base64: string
+    }>> {
+        try{
+            const user = await this.service.findById(id)
+            if(!user) throw new Error("Usuario no existente");
+            if(!user.liquidaciones) throw new Error("Usuario sin liquidaciones");
+            const liquidacion = await this.service.getLiqByID(lid)
+            if(!liquidacion) throw new Error("Liquidación no encontrada");
+            const filePath = join(process.cwd(), liquidacion.path.replace(/^\//, ''))
+            if(!existsSync(filePath)) {
+                return {
+                    message: "Liquidación no existente",
+                    error: true
+                }
+            }
+            const fileBuffer = readFileSync(filePath)
+            const base64 = fileBuffer.toString('base64')
+            return {
+                message: "Liquidación en base64",
+                data: { base64 },
+                error: false
+            }
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Entrega el PDF de una liquidación como respuesta (no descarga)"
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        description: "PDF de liquidación entregado",
+        content: { 'application/pdf': { schema: { type: 'string', format: 'binary' } } }
+    })
+    @Get(":id/liquidacion/:lid/pdf")
+    async getLiquidationPdf(
+        @Param("id", ParseIntPipe)
+        id: number,
+        @Param("lid", ParseIntPipe)
+        lid: number,
+        @Res()
+        res: Response
+    ): Promise<void> {
+    try {
+        const user = await this.service.findById(id);
+        if (!user || !user.liquidaciones) {
+            res.status(404).json({ message: "Usuario sin liquidaciones", error: true });
+            return;
+        }
+        const liquidacion = await this.service.getLiqByID(lid);
+        if (!liquidacion) {
+            res.status(404).json({ message: "Liquidación no encontrada", error: true });
+            return;
+        }
+        const filePath = join(process.cwd(), liquidacion.path.replace(/^\//, ""));
+        if (!existsSync(filePath)) {
+            res.status(404).json({ message: "Liquidación no existente", error: true });
+            return;
+        }
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="' + (liquidacion.path.split("/").pop() || "liquidacion.pdf") + '"');
+        res.sendFile(filePath);
+    } catch (err) {
+        res.status(500).json({ message: (err as Error).message, error: true });
+    }
+}
 }

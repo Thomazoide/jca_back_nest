@@ -85,4 +85,8 @@ export class UserService {
     async getLiqByID(id: number): Promise<Liquidacion> {
         return this.liqRepository.findOne({where:{id}})
     }
+
+    async getLiquidations(userId: number): Promise<Liquidacion[]> {
+        return this.liqRepository.find({where: {userId}})
+    }
 }

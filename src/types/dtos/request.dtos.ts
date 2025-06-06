@@ -38,3 +38,8 @@ export class ChangePasswordDTO {
     @ApiProperty()
     newPassword: string
 }
+
+export class CheckTokenPayload {
+    @ApiProperty()
+    token: string
+}

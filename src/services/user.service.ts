@@ -89,4 +89,18 @@ export class UserService {
     async getLiquidations(userId: number): Promise<Liquidacion[]> {
         return this.liqRepository.find({where: {userId}})
     }
+
+    async checkToken(token: string): Promise<boolean> {
+        try{
+            await this.tokenService.verifyAsync(token)
+            return true
+        }catch {
+            return false
+        }
+    }
+
+    async checkIsAdmin(id: number): Promise<boolean> {
+        const user = await this.userRepository.findOne({where:{id}})
+        return user.isAdmin
+    }
 }

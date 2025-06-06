@@ -7,3 +7,7 @@ export interface changePasswordPayload {
     oldPassword: string
     newPassword: string
 }
+
+export interface checkTokenPayload {
+    token: string
+}

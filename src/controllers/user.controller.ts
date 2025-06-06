@@ -8,11 +8,11 @@ import { diskStorage } from "multer";
 import { Liquidacion } from "src/models/liquidaciones.model";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
-import { changePasswordPayload, loginPayload } from "src/types/requests";
+import { changePasswordPayload, checkTokenPayload, loginPayload } from "src/types/requests";
 import { JwtAuthGuard } from "src/config/auth/jwtAuthGuard.config";
 import { ApiBearerAuth, ApiOperation, ApiTags, ApiBody, ApiResponse, ApiConsumes, ApiParam } from "@nestjs/swagger";
 import { LoginSuccessDTO, ResponsePayloadDTO } from "src/types/dtos/response.dtos";
-import { ChangePasswordDTO, LoginPayloadDTO, UserDTO } from "src/types/dtos/request.dtos";
+import { ChangePasswordDTO, CheckTokenPayload, LoginPayloadDTO, UserDTO } from "src/types/dtos/request.dtos";
 
 @ApiTags("usuarios")
 @Controller("usuarios")
@@ -654,27 +654,90 @@ export class UserController {
         @Res()
         res: Response
     ): Promise<void> {
-    try {
-        const user = await this.service.findById(id);
-        if (!user || !user.liquidaciones) {
-            res.status(404).json({ message: "Usuario sin liquidaciones", error: true });
-            return;
+        try {
+            const user = await this.service.findById(id);
+            if (!user || !user.liquidaciones) {
+                res.status(404).json({ message: "Usuario sin liquidaciones", error: true });
+                return;
+            }
+            const liquidacion = await this.service.getLiqByID(lid);
+            if (!liquidacion) {
+                res.status(404).json({ message: "Liquidación no encontrada", error: true });
+                return;
+            }
+            const filePath = join(process.cwd(), liquidacion.path.replace(/^\//, ""));
+            if (!existsSync(filePath)) {
+                res.status(404).json({ message: "Liquidación no existente", error: true });
+                return;
+            }
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', 'inline; filename="' + (liquidacion.path.split("/").pop() || "liquidacion.pdf") + '"');
+            res.sendFile(filePath);
+        } catch (err) {
+            res.status(500).json({ message: (err as Error).message, error: true });
         }
-        const liquidacion = await this.service.getLiqByID(lid);
-        if (!liquidacion) {
-            res.status(404).json({ message: "Liquidación no encontrada", error: true });
-            return;
-        }
-        const filePath = join(process.cwd(), liquidacion.path.replace(/^\//, ""));
-        if (!existsSync(filePath)) {
-            res.status(404).json({ message: "Liquidación no existente", error: true });
-            return;
-        }
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', 'inline; filename="' + (liquidacion.path.split("/").pop() || "liquidacion.pdf") + '"');
-        res.sendFile(filePath);
-    } catch (err) {
-        res.status(500).json({ message: (err as Error).message, error: true });
     }
-}
+
+    @ApiOperation({
+        summary: "Comprueba si un token es valido",
+        tags: ["seguridad"]
+    })
+    @ApiResponse({
+        status: 200,
+        type: ResponsePayloadDTO<boolean>
+    })
+    @ApiBody({
+        type: CheckTokenPayload
+    })
+    @Post("check-token")
+    async CheckToken(
+        @Body()
+        data: checkTokenPayload
+    ): Promise<responsePayload<boolean>> {
+        try{
+            return {
+                message: "Token comprobado",
+                data: await this.service.checkToken(data.token),
+                error: false
+            }
+        }catch(err) {
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Comprueba si un usuario es administrador",
+        tags: ["seguridad"]
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        type: ResponsePayloadDTO<boolean>
+    })
+    @ApiParam({
+        name: "id",
+        type: Number
+    })
+    @Get("check-admin/:id")
+    async CheckAdminStatus(
+        @Param("id", ParseIntPipe)
+        id: number
+    ): Promise<responsePayload<boolean>> {
+        try{
+            return {
+                message: "Usuario administrador",
+                data: await this.service.checkIsAdmin(id),
+                error: false
+            }
+        }catch(err) {
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
 }

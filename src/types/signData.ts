@@ -6,4 +6,5 @@ export interface userSignData {
     email: string
     rut: string
     cargo: CARGOS
+    isAdmin: boolean
 }

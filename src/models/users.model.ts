@@ -38,7 +38,8 @@ export class User {
             fullName: this.fullName,
             email: this.email,
             rut: this.email,
-            cargo: this.cargo
+            cargo: this.cargo,
+            isAdmin: this.isAdmin
         }
     }
 }

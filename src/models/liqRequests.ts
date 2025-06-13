@@ -6,7 +6,7 @@ export class LiqRequest {
     id: number
     @Column()
     message: string
-    @Column()
+    @Column({default: false})
     completada: boolean
     @Column()
     userID: number

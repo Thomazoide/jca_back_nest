@@ -1,9 +1,0 @@
-DBUSER=root
-DBPASS=12321
-DBHOST=localhost
-DBPORT=3306
-DBNAME=jca
-PEPPER=jcait2kxx
-SALT=16
-SECRET=jca2kxx
-BUCKET_NAME=jca

@@ -6,7 +6,8 @@ import { Solicitud } from "src/models/solicitud.model";
 import { User } from "src/models/users.model";
 
 export const typeOrmConfig = (env: ConfigService): TypeOrmModuleOptions => ({
-    type: "mariadb",
+    type: "mysql",
+    port: Number(env.get<string>("DBPORT")),
     host: env.get<string>("DBHOST"),
     database: env.get<string>("DBNAME"),
     username: env.get<string>("DBUSER"),

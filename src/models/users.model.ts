@@ -1,7 +1,8 @@
 import { CARGOS } from "src/enums/cargos.enum";
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from "typeorm";
 import { Liquidacion } from "./liquidaciones.model";
 import { userSignData } from "src/types/signData";
+import { Teams } from "./teams.model";
 
 @Entity("users")
 export class User {
@@ -31,6 +32,9 @@ export class User {
 
     @OneToMany( () => Liquidacion, (liq) => liq.user )
     liquidaciones: Liquidacion[]
+
+    @ManyToOne( () => Teams, team => team.guardias, {nullable: true} )
+    equipoGuardia: Teams
 
     public toSignData(): userSignData {
         return {

@@ -1,7 +1,6 @@
 import { CARGOS } from "src/enums/cargos.enum";
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from "typeorm";
 import { Liquidacion } from "./liquidaciones.model";
-import { userSignData } from "src/types/signData";
 import { Teams } from "./teams.model";
 
 @Entity("users")
@@ -28,6 +27,12 @@ export class User {
     contrato: string
 
     @Column()
+    birthDate: string
+
+    @Column({default: null})
+    picturePath: string
+
+    @Column()
     cargo: CARGOS
 
     @OneToMany( () => Liquidacion, (liq) => liq.user )
@@ -36,14 +41,15 @@ export class User {
     @ManyToOne( () => Teams, team => team.guardias, {nullable: true} )
     equipoGuardia: Teams
 
-    public toSignData(): userSignData {
+    public toSignData(): Partial<User> {
         return {
             id: this.id,
             fullName: this.fullName,
             email: this.email,
             rut: this.email,
             cargo: this.cargo,
-            isAdmin: this.isAdmin
+            isAdmin: this.isAdmin,
+            birthDate: this.birthDate,
         }
     }
 }

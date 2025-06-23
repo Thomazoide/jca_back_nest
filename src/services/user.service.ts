@@ -103,4 +103,19 @@ export class UserService {
         const user = await this.userRepository.findOne({where:{id}})
         return user.isAdmin
     }
+
+    async getBirthDates(): Promise<{
+        fullName: string
+        nextBirthday: Date
+    }[]> {
+        const users = await this.userRepository.find()
+        const today = new Date()
+        const currentYear = today.getFullYear()
+        const proximosCumpleaños = users.map( (user) => {
+            const birth = new Date(user.birthDate)
+            const birthdayThisYear = new Date(currentYear, birth.getMonth(), birth.getDate())
+            return {fullName: user.fullName, nextBirthday: birthdayThisYear}
+        } ).filter( user => user.nextBirthday >= today ).sort( (a, b) => a.nextBirthday.getTime() - b.nextBirthday.getTime() )
+        return proximosCumpleaños
+    }
 }

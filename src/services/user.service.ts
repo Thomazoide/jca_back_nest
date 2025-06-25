@@ -106,16 +106,22 @@ export class UserService {
 
     async getBirthDates(): Promise<{
         fullName: string
-        nextBirthday: Date
+        birthday: Date
     }[]> {
         const users = await this.userRepository.find()
         const today = new Date()
         const currentYear = today.getFullYear()
-        const proximosCumpleaños = users.map( (user) => {
-            const birth = new Date(user.birthDate)
-            const birthdayThisYear = new Date(currentYear, birth.getMonth(), birth.getDate())
-            return {fullName: user.fullName, nextBirthday: birthdayThisYear}
-        } ).filter( user => user.nextBirthday >= today ).sort( (a, b) => a.nextBirthday.getTime() - b.nextBirthday.getTime() )
+        const proximosCumpleaños = users
+            .map( (user) => {
+                const birth = new Date(user.birthDate)
+                const birthdayThisYear = new Date(currentYear, birth.getMonth(), birth.getDate())
+                return {
+                    fullName: user.fullName,
+                    birthday: birthdayThisYear
+                }
+            } )
+            .filter( user => user.birthday >= today )
+            .sort( (a, b) => a.birthday.getTime() - b.birthday.getTime() )
         return proximosCumpleaños
     }
 }

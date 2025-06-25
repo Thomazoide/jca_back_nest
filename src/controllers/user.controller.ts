@@ -22,7 +22,7 @@ export class UserController {
     ) {}
 
     
-    @ApiBearerAuth()
+    
     @ApiOperation({
         summary: "Crea un nuevo usuario"
     })
@@ -734,6 +734,37 @@ export class UserController {
                 error: false
             }
         }catch(err) {
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Entrega los proximos cumpleaños"
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        type: ResponsePayloadDTO<{
+            fullName: string,
+            birthdate: Date
+        }[]>
+    })
+    @Get("next-birthdays")
+    async GetBirthdays(): Promise<responsePayload<{
+        fullName: string,
+        birthday: Date
+    }[]>> {
+        try{
+            return {
+                message: "Proximos cumpleaños",
+                data: await this.service.getBirthDates(),
+                error: false
+            }
+        }catch(err){
             return {
                 message: (err as Error).message,
                 error: true

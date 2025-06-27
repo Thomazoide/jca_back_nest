@@ -771,4 +771,109 @@ export class UserController {
             }
         }
     }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Entrega la imagen de perfil en base64"
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        description: "Imágen de perfil en Base64",
+        type: ResponsePayloadDTO<{base64: string}>
+    })
+    @Get(":id/pfp/base64")
+    async getPfpBase64(
+        @Param("id")
+        id: number
+    ): Promise<responsePayload<{
+        base64: string
+    }>> {
+        try{
+            const user = await this.service.findById(id)
+            if(!user || !user.picturePath) {
+                console.log("aqui murió (!user || !user.picturePath)")
+                return {
+                    message: "Imagen no encontrada",
+                    error: true
+                }
+            }
+            const filePath = join(process.cwd(), user.picturePath.replace(/^\//, ''))
+            if(!existsSync(filePath)) {
+                console.log("Aqui murió (!existsSync(filePath))")
+                return {
+                    message: "Imágen no encontrada",
+                    error: true
+                }
+            }
+            const fileBuffer = readFileSync(filePath)
+            const base64 = fileBuffer.toString('base64')
+            return {
+                message: "Imágen de perfil en base64",
+                data: { base64 },
+                error: false
+            }
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Actualiza la imágen de perfil"
+    })
+    @ApiBearerAuth()
+    @ApiConsumes("multipart/form-data")
+    @ApiBody({
+        schema: {
+            type: "object",
+            properties: {
+                file: {
+                    type: "string",
+                    format: "binary",
+                    description: "Imágen de perfil"
+                }
+            },
+            required: ["file"]
+        }
+    })
+    @ApiResponse({
+        status: 200,
+        description: "Imagen de perfil actualizada",
+        type: ResponsePayloadDTO<Partial<User>>
+    })
+    @Put(":id/pfp")
+    @UseInterceptors(FileInterceptor("file", {
+        storage: diskStorage({
+            destination: "./uploads/fotos",
+            filename: (_, file, cb) => cb(null, file.originalname)
+        }),
+        fileFilter: (_, file, cb) => {
+            if(file.mimetype === "image/jpeg" || file.mimetype === "image/png") cb(null, true);
+            else cb(new Error("Solo archivos JPG o PNG"), false)
+        }
+    }))
+    async UpdatePfp(
+        @Param("id", ParseIntPipe)
+        id: number,
+        @UploadedFile()
+        file: Express.Multer.File
+    ): Promise<responsePayload<Partial<User>>> {
+        try{
+            const path = `/uploads/fotos/${file.originalname}`
+            return {
+                message: "Imágen de perfil actualizada",
+                data: (await this.service.updatePfp(id, path)).toSignData(),
+                error: false
+            }
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
 }

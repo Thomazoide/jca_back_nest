@@ -50,6 +50,7 @@ export class User {
             cargo: this.cargo,
             isAdmin: this.isAdmin,
             birthDate: this.birthDate,
+            picturePath: this.picturePath
         }
     }
 }

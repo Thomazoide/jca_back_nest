@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
+import { existsSync, unlinkSync } from "fs";
 import { Encrypter } from "src/middleware/encrypter.middleware";
 import { Liquidacion } from "src/models/liquidaciones.model";
 import { User } from "src/models/users.model";
@@ -123,5 +124,23 @@ export class UserService {
             .filter( user => user.birthday >= today )
             .sort( (a, b) => a.birthday.getTime() - b.birthday.getTime() )
         return proximosCumpleaños
+    }
+
+    async updatePfp(id: number, path: string): Promise<User> {
+        const user = await this.userRepository.findOneBy({id})
+        if(!user) throw new Error("Usuario no encontrado");
+        if(user.picturePath) {
+            const oldPath = user.picturePath.startsWith("/")
+                ? user.picturePath.replace(/^\//, "")
+                : user.picturePath
+            const fullOldPath = `${process.cwd()}/${oldPath}`
+            try{
+                if(existsSync(fullOldPath)) unlinkSync(fullOldPath);
+            }catch(err){
+                console.log(err)
+            }
+        }
+        user.picturePath = path
+        return this.userRepository.save(user)
     }
 }

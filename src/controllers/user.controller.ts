@@ -21,7 +21,37 @@ export class UserController {
         private readonly service: UserService
     ) {}
 
-    
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Entrega los proximos cumpleaños"
+    })
+    @ApiBearerAuth()
+    @ApiResponse({
+        status: 200,
+        type: ResponsePayloadDTO<{
+            fullName: string,
+            birthdate: Date
+        }[]>
+    })
+    @Get("nextBirthdays")
+    async GetBirthdays(): Promise<responsePayload<{
+        fullName: string,
+        birthday: Date
+    }[]>> {
+        try{
+            return {
+                message: "Proximos cumpleaños",
+                data: await this.service.getBirthDates(),
+                error: false
+            }
+        }catch(err){
+            console.log(err)
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    }
     
     @ApiOperation({
         summary: "Crea un nuevo usuario"
@@ -743,37 +773,6 @@ export class UserController {
 
     @UseGuards(JwtAuthGuard)
     @ApiOperation({
-        summary: "Entrega los proximos cumpleaños"
-    })
-    @ApiBearerAuth()
-    @ApiResponse({
-        status: 200,
-        type: ResponsePayloadDTO<{
-            fullName: string,
-            birthdate: Date
-        }[]>
-    })
-    @Get("next-birthdays")
-    async GetBirthdays(): Promise<responsePayload<{
-        fullName: string,
-        birthday: Date
-    }[]>> {
-        try{
-            return {
-                message: "Proximos cumpleaños",
-                data: await this.service.getBirthDates(),
-                error: false
-            }
-        }catch(err){
-            return {
-                message: (err as Error).message,
-                error: true
-            }
-        }
-    }
-
-    @UseGuards(JwtAuthGuard)
-    @ApiOperation({
         summary: "Entrega la imagen de perfil en base64"
     })
     @ApiBearerAuth()
@@ -792,7 +791,6 @@ export class UserController {
         try{
             const user = await this.service.findById(id)
             if(!user || !user.picturePath) {
-                console.log("aqui murió (!user || !user.picturePath)")
                 return {
                     message: "Imagen no encontrada",
                     error: true

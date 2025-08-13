@@ -2,7 +2,8 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Teams } from "src/models/teams.model";
 import { User } from "src/models/users.model";
-import { Repository } from "typeorm";
+import { IsNull, Repository } from "typeorm";
+import { CARGOS } from "src/enums/cargos.enum";
 
 @Injectable()
 export class TeamService {
@@ -51,5 +52,27 @@ export class TeamService {
         if(!user.equipoGuardia) throw new Error("El usuario no pertenece a ningun equipo");
         user.equipoGuardia = null
         return this.uRepository.save(user)
+    }
+
+    async GetAllTeams(): Promise<Array<Teams>> {
+        return await this.repository.find();
+    }
+
+    async GetTeamBySupervisorID(supervisorID: number): Promise<Teams> {
+        return await this.repository.findOne({
+            where: {
+                supervisorID
+            },
+            relations: ["guardias"]
+        })
+    }
+
+    async GetUnassignedGuards(): Promise<User[]> {
+        return this.uRepository.find({
+            where: {
+                cargo: CARGOS.GUARDIA,
+                equipoGuardia: IsNull()
+            }
+        })
     }
 }

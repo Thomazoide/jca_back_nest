@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import { existsSync, unlinkSync } from "fs";
+import { CARGOS } from "src/enums/cargos.enum";
 import { Encrypter } from "src/middleware/encrypter.middleware";
 import { Liquidacion } from "src/models/liquidaciones.model";
 import { User } from "src/models/users.model";
@@ -142,5 +143,14 @@ export class UserService {
         }
         user.picturePath = path
         return this.userRepository.save(user)
+    }
+
+    async GetGuardias(): Promise<Array<User>> {
+        const guardias = await this.userRepository.find({
+            where: {
+                cargo: CARGOS.GUARDIA
+            }
+        })
+        return guardias
     }
 }

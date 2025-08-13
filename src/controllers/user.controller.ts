@@ -874,4 +874,30 @@ export class UserController {
             }
         }
     }
+
+    @UseGuards(JwtAuthGuard)
+    @ApiOperation({
+        summary: "Obtiene a todos los usuarios de tipo guardia"
+    })
+    @ApiBearerAuth("Authorization")
+    @ApiResponse({
+        status: 200,
+        description: "Guardias",
+        type: ResponsePayloadDTO<Array<User>>
+    })
+    @Get("guardias")
+    async GetGuardias(): Promise<responsePayload<Array<User>>> {
+        try{
+            return {
+                message: "Guardias",
+                data: await this.service.GetGuardias(),
+                error: false
+            }
+        }catch(err){
+            return {
+                message: (err as Error).message,
+                error: true
+            }
+        }
+    } 
 }
